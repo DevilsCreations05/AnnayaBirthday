@@ -13,23 +13,27 @@
     idleHide: 2600,      // ms of no mouse movement before UI fades out
   };
 
-  /* ---------------- PHOTOS ---------------- */
-  const IMG = "Images/WhatsApp Image 2026-11-23 at ";
-  const P = {
-    retro:   "Retro Birthday Collage with Polaroid Memories.png",
-    vintage: "Vintage 90s Birthday Scrapbook Collage.png",
-    templeClose: IMG + "22.19.09.jpeg",
-    templeWide:  IMG + "22.19.09 (1).jpeg",
-    templeWall:  IMG + "22.19.09 (2).jpeg",
-    templeWall2: IMG + "22.19.10.jpeg",
-    seaLook:  IMG + "22.19.11.jpeg",
-    seaWink:  IMG + "22.19.11 (1).jpeg",
-    seaBack:  IMG + "22.19.11 (2).jpeg",
-    hoodie:   IMG + "22.21.56.jpeg",
-    sunset:   IMG + "22.21.56 (1).jpeg",
-    collage:  IMG + "22.21.57.jpeg",
-  };
-  const url = (p) => encodeURI(p);
+  /* ---------------- PERFORMANCE MODE ----------------
+     TVs & low-power devices get "lite" mode: same slides & transitions,
+     minus the GPU-heavy extras (blur filters, grain, dust, light leaks).
+     Force with ?lite=1 or ?full=1 in the URL. */
+  const qs = new URLSearchParams(location.search);
+  const TV_UA = /SMART-?TV|SmartTV|Tizen|Web0S|WebOS|NetCast|HbbTV|BRAVIA|AFT[A-Z]|CrKey|Android TV|GoogleTV|Roku|Philips|VIDAA|Hisense|TV Safari|Opera TV|MiBOX|Aquos|; ?TV\b/i;
+  let LITE = qs.has("lite") || (!qs.has("full") && (TV_UA.test(navigator.userAgent) || (navigator.hardwareConcurrency || 8) <= 2));
+  const applyLite = () => document.body.classList.toggle("lite", LITE);
+  applyLite();
+
+  /* ---------------- PHOTOS (optimised copies in assets/) ---------------- */
+  const P = Object.fromEntries(
+    ["retro", "vintage", "templeClose", "templeWide", "templeWall", "templeWall2",
+     "seaLook", "seaWink", "seaBack", "hoodie", "sunset", "collage"]
+      .map((k) => [k, `assets/photos/${k}.jpg`])
+  );
+  const bgOf = (p) => p.replace("assets/photos/", "assets/bg/");   // tiny pre-blurred version
+
+  // Everything is downloaded up-front into memory (blob: URLs) so nothing loads mid-show
+  const BLOB = {};
+  const url = (p) => BLOB[p] || encodeURI(p);
 
   // Crops out of the 1080×1440 throwback collage → individual film frames
   const COLLAGE = { W: 1080, H: 1440 };
@@ -210,12 +214,15 @@
     return h + "</div>";
   }
 
-  /* ---------------- build DOM ---------------- */
+  /* ---------------- build DOM (runs after everything is preloaded) ---------------- */
   const slidesEl = $("#slides");
   const segEl = $("#segments");
   const rollEl = $("#rollCur");
   document.documentElement.style.setProperty("--t", CONFIG.transition + "ms");
+  let slideEls = [];
+  let segs = [];
 
+  function buildSlides() {
   SLIDES.forEach((s, i) => {
     const el = document.createElement("section");
     el.className = `slide l-${s.layout}${s.flip ? " flip" : ""}`;
@@ -225,7 +232,7 @@
     el.style.setProperty("--kbx", `${rand(-3, 3)}%`);
     el.style.setProperty("--kby", `${rand(-2, 2)}%`);
     el.innerHTML = `
-      <div class="bg${s.sharpBg ? " sharp" : ""}"><img src="${url(s.bg)}" alt="" draggable="false"></div>
+      <div class="bg${s.sharpBg ? " sharp" : ""}"><img src="${url(s.sharpBg ? s.bg : bgOf(s.bg))}" alt="" draggable="false"></div>
       <div class="tint"></div>
       ${s.word ? `<span class="big-word">${esc(s.word)}</span>` : ""}
       ${LAYOUTS[s.layout](s)}`;
@@ -242,8 +249,9 @@
     rollEl.insertAdjacentHTML("beforeend", `<span>${pad(i + 1)}</span>`);
   });
   $("#countTotal").textContent = pad(SLIDES.length);
-  const slideEls = $$(".slide", slidesEl);
-  const segs = $$(".seg", segEl);
+  slideEls = $$(".slide", slidesEl);
+  segs = $$(".seg", segEl);
+  }
 
   /* ---------------- slider state ---------------- */
   let current = -1;
@@ -421,22 +429,24 @@
   const ctx = cv.getContext("2d");
   let W = 0, H = 0, DPR = 1;
   function resize() {
-    DPR = Math.min(2, devicePixelRatio || 1);
+    DPR = LITE ? 1 : Math.min(2, devicePixelRatio || 1);
     W = cv.width = innerWidth * DPR;
     H = cv.height = innerHeight * DPR;
   }
   resize();
   addEventListener("resize", resize);
 
-  const dust = Array.from({ length: 70 }, () => ({
+  let dust = Array.from({ length: 70 }, () => ({
     x: Math.random(), y: Math.random(),
     r: rand(.6, 2.2), s: rand(.00004, .00014),
     tw: rand(0, Math.PI * 2), tws: rand(.001, .003),
   }));
   const confetti = [];
+  let fxDirty = true;
   const COLORS = ["#f1cf86", "#d9a74a", "#a3242a", "#fbf3e4", "#2a8c95", "#ff8a7a"];
 
   function burst(x, y, n = 120) {
+    if (LITE) n = Math.round(n * 0.4);
     for (let i = 0; i < n; i++) {
       const a = rand(0, Math.PI * 2), v = rand(4, 13);
       confetti.push({
@@ -451,9 +461,11 @@
   }
 
   function drawFX(dt) {
+    if (LITE && !confetti.length) { if (fxDirty) { ctx.clearRect(0, 0, W, H); fxDirty = false; } return; }
+    fxDirty = true;
     ctx.clearRect(0, 0, W, H);
     // dust
-    for (const p of dust) {
+    if (!LITE) for (const p of dust) {
       p.y -= p.s * dt; p.tw += p.tws * dt;
       if (p.y < -0.02) { p.y = 1.02; p.x = Math.random(); }
       const a = 0.25 + Math.sin(p.tw) * 0.25;
@@ -539,38 +551,164 @@
     if (!muted) showNowPlaying();
   }
   $("#musicBtn").addEventListener("click", toggleMute);
-  loadTrack(0);
 
-  /* ---------------- preload + intro ---------------- */
+  /* =========================================================
+     PRELOADER — "system check" that loads EVERYTHING before play
+     ========================================================= */
   const startBtn = $("#startBtn");
-  const unique = [...new Set(Object.values(P))];
-  let loaded = 0;
-  $("#loaderTotal").textContent = unique.length;
   $("#introName").textContent = `for ${CONFIG.name} ✦`;
 
-  function onLoaded() {
-    loaded++;
-    $("#loaderCount").textContent = loaded;
-    $("#loaderFill").style.width = (loaded / unique.length) * 100 + "%";
-    if (loaded === unique.length) ready();
-  }
-  unique.forEach((src) => {
-    const im = new Image();
-    im.onload = im.onerror = onLoaded;
-    im.src = url(src);
-  });
-  const fallback = setTimeout(ready, 12000);   // never get stuck on slow networks
+  const checksEl = $("#checks");
+  const STEPS = [
+    ["display", "Checking display"],
+    ["perf",    "Testing performance"],
+    ["fonts",   "Loading fonts"],
+    ["photos",  "Loading photos"],
+    ["music",   "Loading music"],
+    ["slides",  "Preparing slides"],
+  ];
+  STEPS.forEach(([id, label]) => checksEl.insertAdjacentHTML("beforeend",
+    `<li data-step="${id}" data-state="wait"><span class="ck"></span><span class="lbl">${label}</span><span class="val"></span></li>`));
+  const step = (id, state, val) => {
+    const li = $(`[data-step="${id}"]`, checksEl);
+    if (state) li.dataset.state = state;
+    if (val !== undefined) $(".val", li).textContent = val;
+  };
 
-  let isReady = false;
+  // weighted overall progress (bytes for photos & music)
+  const prog = { photos: 0, music: 0, other: 0 };
+  function renderProgress() {
+    const pct = Math.round((prog.other * 0.15 + prog.photos * 0.35 + prog.music * 0.5) * 100);
+    $("#loaderFill").style.width = pct + "%";
+    $("#loaderPct").textContent = pct + "%";
+  }
+
+  const mb = (b) => (b / 1048576).toFixed(1);
+  const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const withTimeout = (p, ms) => Promise.race([p, wait(ms)]);
+
+  // fetch a file fully into memory, reporting bytes as they arrive
+  async function fetchBlob(path, onBytes) {
+    const res = await fetch(encodeURI(path), { cache: "force-cache" });
+    if (!res.ok) throw new Error(res.status + " " + path);
+    const total = +res.headers.get("content-length") || 0;
+    if (!res.body || !res.body.getReader) {           // older browsers: no streaming
+      const b = await res.blob(); onBytes(b.size, b.size || total); return b;
+    }
+    const reader = res.body.getReader(), parts = [];
+    let got = 0;
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      parts.push(value); got += value.length;
+      onBytes(got, total);
+    }
+    return new Blob(parts, { type: res.headers.get("content-type") || "" });
+  }
+
+  // measure real frame rate for ~1s
+  function measureFPS(ms = 1000) {
+    return new Promise((resolve) => {
+      let frames = 0; const t0 = performance.now();
+      (function f(now) {
+        frames++;
+        if (now - t0 < ms) requestAnimationFrame(f);
+        else resolve(Math.round((frames * 1000) / (now - t0)));
+      })(t0);
+    });
+  }
+
+  async function boot() {
+    try {
+      // 1. display
+      step("display", "run");
+      await wait(250);
+      const dpr = devicePixelRatio || 1;
+      step("display", "done", `${Math.round(innerWidth * dpr)}×${Math.round(innerHeight * dpr)}`);
+      prog.other = 0.15; renderProgress();
+
+      // 2. performance
+      step("perf", "run");
+      const fps = await measureFPS(1000);
+      if (!qs.has("full") && !qs.has("lite") && fps < 40) LITE = true;
+      applyLite();
+      if (LITE) resize();
+      step("perf", LITE ? "warn" : "done", LITE ? `${fps} fps · TV mode` : `${fps} fps · full effects`);
+      prog.other = 0.35; renderProgress();
+
+      // 3. fonts
+      step("fonts", "run");
+      if (document.fonts && document.fonts.ready) await withTimeout(document.fonts.ready, 5000);
+      step("fonts", "done", "ready");
+      prog.other = 0.5; renderProgress();
+
+      // 4 + 5. photos and music in parallel
+      const photoPaths = [...new Set(Object.values(P))];
+      const allImgs = [...photoPaths, ...photoPaths.map(bgOf)];
+      let imgsDone = 0;
+      step("photos", "run", `0 / ${allImgs.length}`);
+      const photosJob = Promise.all(allImgs.map(async (p) => {
+        try {
+          const blob = await fetchBlob(p, () => {});
+          BLOB[p] = URL.createObjectURL(blob);
+          const im = new Image();
+          im.src = BLOB[p];
+          if (im.decode) await im.decode().catch(() => {});   // decode now, not mid-transition
+        } catch (e) { /* fall back to normal URL */ }
+        imgsDone++;
+        prog.photos = imgsDone / allImgs.length; renderProgress();
+        step("photos", null, `${imgsDone} / ${allImgs.length}`);
+      })).then(() => step("photos", "done", `${allImgs.length} / ${allImgs.length}`));
+
+      const songBytes = PLAYLIST.map(() => ({ got: 0, total: 0 }));
+      step("music", "run", "0.0 MB");
+      const musicJob = Promise.all(PLAYLIST.map(async (t, i) => {
+        try {
+          const blob = await fetchBlob(t.src, (got, total) => {
+            songBytes[i].got = got; songBytes[i].total = total;
+            const g = songBytes.reduce((a, s) => a + s.got, 0);
+            const tot = songBytes.reduce((a, s) => a + s.total, 0);
+            prog.music = tot ? g / tot : 0; renderProgress();
+            step("music", null, tot ? `${mb(g)} / ${mb(tot)} MB` : `${mb(g)} MB`);
+          });
+          BLOB[t.src] = URL.createObjectURL(blob);
+        } catch (e) { /* stream normally instead */ }
+      })).then(() => { prog.music = 1; renderProgress(); step("music", "done", `${PLAYLIST.length} songs`); });
+
+      await Promise.all([photosJob, musicJob]);
+      loadTrack(0);
+
+      // 6. build every slide and render each one once (warms the GPU & image cache)
+      step("slides", "run");
+      buildSlides();
+      for (let i = 0; i < slideEls.length; i++) {
+        step("slides", null, `${i + 1} / ${slideEls.length}`);
+        slideEls[i].classList.add("warm");
+        await nextFrame(); await nextFrame();
+        slideEls[i].classList.remove("warm");
+      }
+      step("slides", "done", "all set");
+      prog.other = 1; renderProgress();
+    } catch (e) {
+      console.warn("Preload issue, continuing:", e);
+      if (!slideEls.length) buildSlides();
+      if (!audio.src) loadTrack(0);
+    }
+    ready();
+  }
+
   function ready() {
-    if (isReady) return;
-    isReady = true;
-    clearTimeout(fallback);
+    $("#loaderMsg").textContent = "Everything's ready";
     setTimeout(() => {
       $("#loader").classList.add("is-done");
-      startBtn.disabled = false;
-      startBtn.classList.add("is-ready");
-    }, 2200);   // let the intro title finish writing
+      setTimeout(() => {
+        $("#loader").hidden = true;
+        startBtn.disabled = false;
+        startBtn.classList.add("is-ready");
+        startBtn.focus({ preventScroll: true });     // TV remote: just press OK
+      }, 500);
+    }, 700);
   }
 
   function start() {
@@ -594,4 +732,5 @@
   startBtn.addEventListener("click", start);
 
   requestAnimationFrame(loop);
+  boot();
 })();

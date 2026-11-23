@@ -21,3 +21,9 @@ A full-screen, cinematic birthday slideshow — pure HTML/CSS/JS, no build step.
 
 ## Run
 Open `index.html` in a browser, or publish with **GitHub Pages** (Settings → Pages → Deploy from branch `main`, root).
+
+## Loading & TV mode
+- A "system check" loader downloads **everything first** — fonts, all photos (decoded), both songs — and pre-renders every slide before the start button appears, so nothing loads mid-show.
+- Smart TVs / slow devices are auto-detected (user-agent + a 1-second frame-rate test) and switch to **TV mode**: same slides and transitions, without the GPU-heavy blur, grain, light leaks and dust.
+- Force it either way with `?lite=1` or `?full=1`, e.g. `…/AnnayaBirthday/?lite=1`.
+- Optimised images live in `assets/photos` (display) and `assets/bg` (tiny pre-blurred backgrounds).
