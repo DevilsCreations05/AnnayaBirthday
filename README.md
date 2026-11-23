@@ -14,7 +14,7 @@ A full-screen, cinematic birthday slideshow — pure HTML/CSS/JS, no build step.
 | 7 | Finale | Framed collage + confetti | Vintage scrapbook collage |
 
 ## Controls
-- Auto-advances every **2 s** (change `CONFIG.interval` in `script.js`)
+- Each slide animates in (~1.6 s), then holds still for **2 s** — tweak `CONFIG.interval` / `CONFIG.settle` in `script.js`
 - `←` `→` navigate · `Space` pause · `F` full-screen · swipe on mobile · click the progress bars to jump
 - Click anywhere for confetti 🎉
 

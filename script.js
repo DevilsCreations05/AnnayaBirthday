@@ -7,7 +7,8 @@
   /* ---------------- CONFIG ---------------- */
   const CONFIG = {
     name: "Annaya",
-    interval: 2000,      // ms between slides (auto-play)
+    interval: 2000,      // ms each slide stays fully still before moving on
+    settle: 1600,        // ms for the entrance (transition + text/photo animations) — timer starts after this
     transition: 1100,    // ms for the slide-to-slide transition
     idleHide: 2600,      // ms of no mouse movement before UI fades out
   };
@@ -281,7 +282,7 @@
     runOverlay($("#leak"));
 
     current = n;
-    elapsed = 0;
+    elapsed = -CONFIG.settle;   // hold starts only once the slide has settled
     updateUI();
 
     if (SLIDES[n].finale && started) {
@@ -327,7 +328,7 @@
       elapsed += dt;
       if (elapsed >= CONFIG.interval) nextSlide();
       const fill = segs[current] && segs[current].querySelector(".fill");
-      if (fill) fill.style.setProperty("--p", Math.min(1, elapsed / CONFIG.interval));
+      if (fill) fill.style.setProperty("--p", Math.min(1, (elapsed + CONFIG.settle) / (CONFIG.interval + CONFIG.settle)));
     }
 
     // smoothed parallax -1..1

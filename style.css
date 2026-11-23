@@ -132,10 +132,10 @@ body.cursor-down .cursor-ring { width: 26px; height: 26px; margin: -13px 0 0 -13
   padding: 0 .3em;
 }
 .intro-title .write {
-  clip-path: inset(0 100% 0 0);
+  clip-path: inset(-30% 100% -40% 0);
   animation: write 1.8s var(--ease-io) .6s forwards;
 }
-@keyframes write { to { clip-path: inset(0 -5% 0 0); } }
+@keyframes write { to { clip-path: inset(-30% -5% -40% 0); } }
 
 .intro-title .serif {
   display: block;
@@ -252,7 +252,7 @@ body.cursor-down .cursor-ring { width: 26px; height: 26px; margin: -13px 0 0 -13
   filter: blur(26px) var(--grade);
   transform: scale(1.15);
 }
-.bg.sharp img { filter: var(--grade); }
+.bg.sharp img { filter: blur(4px) var(--grade); }
 .slide.is-active .bg img, .slide.is-leaving .bg img { animation: kenburns 7s linear both; }
 @keyframes kenburns {
   from { transform: scale(1.25) translate(var(--kbx, 2%), var(--kby, 1%)); }
@@ -271,6 +271,7 @@ body.cursor-down .cursor-ring { width: 26px; height: 26px; margin: -13px 0 0 -13
   left: 3vw; bottom: 2vh;
   translate: calc(var(--mx) * 30px) calc(var(--my) * 20px);
 }
+.l-split.flip .big-word { left: auto; right: 3vw; }
 .slide.is-active .big-word { animation: wordSlide 2.2s var(--ease-out) .15s both; }
 @keyframes wordSlide { from { opacity: 0; transform: translateX(-8%); } to { opacity: 1; transform: none; } }
 
@@ -389,13 +390,14 @@ body.cursor-down .cursor-ring { width: 26px; height: 26px; margin: -13px 0 0 -13
 }
 .mosaic {
   display: grid;
-  grid-template-columns: 1.15fr .85fr;
-  grid-template-rows: 1fr 1fr;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr);
+  grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 14px;
   height: 74vh;
   perspective: 1400px;
 }
-.mosaic .tile { position: relative; }
+.mosaic .tile { position: relative; min-height: 0; }
+.mosaic .ph img { position: absolute; inset: 0; }
 .mosaic .tile:first-child { grid-row: 1 / 3; }
 .mosaic .ph {
   height: 100%;
@@ -517,8 +519,8 @@ body.cursor-down .cursor-ring { width: 26px; height: 26px; margin: -13px 0 0 -13
 
 /* inset mini photo — a second image layered on the split */
 .l-split .inset {
-  position: absolute; z-index: 5; width: min(15vw, 26vh);
-  bottom: 14vh; left: calc(44% - min(7.5vw, 13vh));
+  position: absolute; z-index: 5; width: min(13vw, 23vh);
+  bottom: 7vh; left: calc(44% - min(7.5vw, 13vh));
   padding: 7px 7px 30px; background: #fbf5ea;
   box-shadow: 0 25px 50px -10px rgba(0,0,0,.8);
   transform: rotate(-6deg); opacity: 0;
@@ -566,7 +568,7 @@ body.cursor-down .cursor-ring { width: 26px; height: 26px; margin: -13px 0 0 -13
 }
 .reel::before { top: 9px; } .reel::after { bottom: 9px; }
 .slide.l-reel.is-active .reel, .slide.l-reel.is-leaving .reel { animation: roll 3.4s cubic-bezier(.3,.5,.3,1) both; }
-@keyframes roll { from { transform: translateX(60vw); } to { transform: translateX(calc(-100% + 75vw)); } }
+@keyframes roll { from { transform: translateX(45vw); } to { transform: translateX(calc(-100% + 100vw)); } }
 .reel .frm {
   height: var(--fh); aspect-ratio: var(--ar);
   border: 1px solid rgba(236,202,142,.25);
@@ -583,7 +585,7 @@ body.cursor-down .cursor-ring { width: 26px; height: 26px; margin: -13px 0 0 -13
 .slide.is-active .spark { animation: twinkle 2.4s ease-in-out calc(var(--d) * 300ms) infinite; }
 @keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.4) rotate(0); } 50% { opacity: 1; transform: scale(1) rotate(90deg); } }
 
-@keyframes write { to { clip-path: inset(0 -5% 0 0); } }
+@keyframes write { to { clip-path: inset(-30% -5% -40% 0); } }
 
 /* =========================================================
    SLIDE TRANSITIONS (applied to the incoming slide)
