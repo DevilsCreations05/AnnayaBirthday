@@ -15,6 +15,7 @@ A full-screen, cinematic birthday slideshow — pure HTML/CSS/JS, no build step.
 
 ## Controls
 - Each slide animates in (~1.6 s), then holds still for **2 s** — tweak `CONFIG.interval` / `CONFIG.settle` in `script.js`
+- 🎵 Two songs play back-to-back on loop (starts on “Open the surprise”) · `M` mute
 - `←` `→` navigate · `Space` pause · `F` full-screen · swipe on mobile · click the progress bars to jump
 - Click anywhere for confetti 🎉
 

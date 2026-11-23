@@ -40,7 +40,7 @@
         <span class="btn-label">Open the surprise</span>
         <span class="btn-star">✦</span>
       </button>
-      <p class="intro-hint">Best viewed full-screen · ← → to navigate · Space to pause</p>
+      <p class="intro-hint">Sound on 🔊 · ← → navigate · Space pause · M mute</p>
     </div>
   </section>
 
@@ -65,7 +65,15 @@
           <span class="total" id="countTotal">00</span>
         </div>
 
+        <div class="now-playing" id="nowPlaying" aria-live="polite">
+          <span class="np-disc"></span>
+          <span class="np-text"><small>Now playing</small><b id="npTitle"></b></span>
+        </div>
+
         <div class="controls">
+          <button class="ctl magnetic" id="musicBtn" aria-label="Mute music">
+            <span class="eq"><i></i><i></i><i></i><i></i></span>
+          </button>
           <button class="ctl magnetic" id="prevBtn" aria-label="Previous">
             <svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>
           </button>

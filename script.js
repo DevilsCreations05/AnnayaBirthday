@@ -393,6 +393,7 @@
     else if (e.key === "ArrowLeft") prevSlide();
     else if (e.key === " ") { e.preventDefault(); setPaused(!paused); }
     else if (e.key.toLowerCase() === "f") toggleFS();
+    else if (e.key.toLowerCase() === "m") toggleMute();
     wake();
   });
 
@@ -490,6 +491,56 @@
     burst(e.clientX, e.clientY, 40);
   });
 
+
+  /* ---------------- MUSIC (2-song playlist, loops forever) ---------------- */
+  const PLAYLIST = [
+    { src: "01 - Namo Namo - SenSongsMp3.Co.mp3", title: "Namo Namo" },
+    { src: "Vachindi Kada Avakasam(SenSongsMp3.Com).mp3", title: "Vachindi Kada Avakasam" },
+  ];
+  const MUSIC_VOLUME = 0.7;
+  const audio = new Audio();
+  audio.preload = "auto";
+  audio.id = "bgm";
+  document.body.appendChild(audio);   // no controls → invisible, but inspectable
+  let track = 0, muted = false, npTimer;
+
+  function loadTrack(i) {
+    track = (i + PLAYLIST.length) % PLAYLIST.length;
+    audio.src = url(PLAYLIST[track].src);
+    $("#npTitle").textContent = PLAYLIST[track].title;
+  }
+  function showNowPlaying() {
+    const np = $("#nowPlaying");
+    np.classList.add("show");
+    clearTimeout(npTimer);
+    npTimer = setTimeout(() => np.classList.remove("show"), 4500);
+  }
+  function fadeTo(target, ms = 1200) {
+    const from = audio.volume, t0 = performance.now();
+    (function step(now) {
+      const k = Math.min(1, (now - t0) / ms);
+      audio.volume = from + (target - from) * k;
+      if (k < 1) requestAnimationFrame(step);
+    })(t0);
+  }
+  function playMusic() {
+    audio.volume = 0;
+    audio.play().then(() => { fadeTo(muted ? 0 : MUSIC_VOLUME); showNowPlaying(); }).catch(() => {});
+  }
+  audio.addEventListener("ended", () => { loadTrack(track + 1); playMusic(); });   // song 1 → song 2 → song 1 …
+  audio.addEventListener("error", () => { loadTrack(track + 1); playMusic(); });
+
+  function toggleMute() {
+    muted = !muted;
+    document.body.classList.toggle("muted", muted);
+    $("#musicBtn").setAttribute("aria-label", muted ? "Unmute music" : "Mute music");
+    if (audio.paused && !muted) playMusic();
+    else fadeTo(muted ? 0 : MUSIC_VOLUME, 500);
+    if (!muted) showNowPlaying();
+  }
+  $("#musicBtn").addEventListener("click", toggleMute);
+  loadTrack(0);
+
   /* ---------------- preload + intro ---------------- */
   const startBtn = $("#startBtn");
   const unique = [...new Set(Object.values(P))];
@@ -532,6 +583,7 @@
 
     document.documentElement.requestFullscreen?.().catch(() => {});
     burst(cx, cy, 160);
+    playMusic();
 
     started = true;
     go(0, 1);
