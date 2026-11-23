@@ -6,7 +6,7 @@
 
   /* ---------------- CONFIG ---------------- */
   const CONFIG = {
-    name: "Annaya",
+    name: "Adithya Reddy",
     interval: 2000,      // ms each slide stays fully still before moving on
     settle: 1600,        // ms for the entrance (transition + text/photo animations) — timer starts after this
     transition: 1100,    // ms for the slide-to-slide transition
@@ -519,7 +519,7 @@
     const from = audio.volume, t0 = performance.now();
     (function step(now) {
       const k = Math.min(1, (now - t0) / ms);
-      audio.volume = from + (target - from) * k;
+      audio.volume = Math.min(1, Math.max(0, from + (target - from) * k));
       if (k < 1) requestAnimationFrame(step);
     })(t0);
   }

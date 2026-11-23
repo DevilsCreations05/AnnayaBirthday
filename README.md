@@ -1,4 +1,4 @@
-# Happy Birthday, Annaya ✦
+# Happy Birthday, Adithya Reddy ✦
 
 A full-screen, cinematic birthday slideshow — pure HTML/CSS/JS, no build step.
 
